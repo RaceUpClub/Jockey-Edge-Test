@@ -41,8 +41,6 @@ jobs:
 
       - name: Scraper ausführen
         run: node jockey_scraper.js
-        env:
-          # Keine Secrets nötig – aber hier könntest du welche hinzufügen
 
       # Ergebnisse committen (CSV + JSON)
       - name: Änderungen committen & pushen
