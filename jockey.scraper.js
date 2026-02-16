@@ -19,7 +19,7 @@ async function scrapeJockeyData() {
     console.log('🐎 Starte Jockey-Scraping...
 ');
 
-    const browser = await puppeteer.launch({ 
+const browser = await puppeteer.launch({ 
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']  // GitHub-Fix!
 });
