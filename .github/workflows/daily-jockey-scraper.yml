@@ -23,7 +23,7 @@ jobs:
           cache: 'npm'
 
       - name: Dependencies installieren (inkl. Puppeteer)
-  run: npm install
+        run: npm install
 
       # ── Puppeteer: Chromium-Dependencies für Ubuntu ──
       - name: Puppeteer System-Pakete installieren
