@@ -1,10 +1,12 @@
 {
   "name": "jockey-scraper",
   "version": "1.0.0",
-  "description": "Täglicher Jockey Scraper",
-  "main": "jockey.scraper.js",
+  "description": "Täglicher Jockey-Statistik Scraper",
+  "main": "jockey_scraper.js",
   "scripts": {
-    "start": "node jockey.scraper.js"
+    "start": "node jockey_scraper.js"
   },
-  "dependencies": {}
+  "dependencies": {
+    "puppeteer": "^23.11.1"
+  }
 }
