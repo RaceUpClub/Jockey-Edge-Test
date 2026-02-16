@@ -21,7 +21,7 @@ async function scrapeJockeyData() {
 
     const browser = await puppeteer.launch({ 
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']  // Wichtig für GitHub!
+    args: ['--no-sandbox', '--disable-setuid-sandbox']  // GitHub-Fix!
 });
 
     // User-Agent setzen
