@@ -1,0 +1,10 @@
+{
+  "name": "jockey-scraper",
+  "version": "1.0.0",
+  "description": "Täglicher Jockey Scraper",
+  "main": "jockey.scraper.js",
+  "scripts": {
+    "start": "node jockey.scraper.js"
+  },
+  "dependencies": {}
+}
