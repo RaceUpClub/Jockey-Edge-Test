@@ -102,7 +102,10 @@ const browser = await puppeteer.launch({
         }).join('
 ');
 
-        fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');
+        fs.writeFileSync if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR);
+}
+        (OUTPUT_CSV, csvHeader + csvRows, 'utf8');
         console.log(`✅ CSV gespeichert: ${OUTPUT_CSV}`);
 
         // JSON erstellen (mit Metadaten)
