@@ -12,8 +12,9 @@ const path = require('path');
 const TARGET_URL = 'https://www.galopp-statistik.de/Jockey-Statistik.php';
 
 // Output-Dateien
-const OUTPUT_CSV = 'jockey_stats_de.csv';
-const OUTPUT_JSON = 'jockey_stats_de.json';
+const OUTPUT_DIR = 'data';
+const OUTPUT_CSV = path.join(OUTPUT_DIR, 'jockey_stats_de.csv');
+const OUTPUT_JSON = path.join(OUTPUT_DIR, 'jockey_stats_de.json');
 
 async function scrapeJockeyData() {
     console.log('🐎 Starte Jockey-Scraping...
