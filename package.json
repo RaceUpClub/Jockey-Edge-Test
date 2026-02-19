@@ -2,7 +2,7 @@
   "name": "jockey-scraper",
   "version": "1.0.0",
   "description": "Täglicher Jockey-Statistik Scraper",
-  "main": "jockey_scraper.js"
+  "main": "jockey_scraper.js",
   "scripts": {
     "start": "node jockey_scraper.js"
   },
