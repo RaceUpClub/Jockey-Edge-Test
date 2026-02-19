@@ -17,40 +17,34 @@ const OUTPUT_CSV = path.join(OUTPUT_DIR, 'jockey_stats_de.csv');
 const OUTPUT_JSON = path.join(OUTPUT_DIR, 'jockey_stats_de.json');
 
 async function scrapeJockeyData() {
-    console.log('🐎 Starte Jockey-Scraping...');
+    console.log('🎠Starte Jockey-Scraping...');
 
     const browser = await puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']  // GitHub-Fix!
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
 
-    // User-Agent setzen
     await page.setUserAgent(
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
 
     try {
-        // Seite laden
         await page.goto(TARGET_URL, { waitUntil: 'networkidle2', timeout: 30000 });
         console.log('✅ Seite geladen');
 
-        // Warte auf Tabelle
         await page.waitForSelector('table', { timeout: 10000 });
 
-        // Extrahiere Daten
         const jockeyData = await page.evaluate(() => {
             const rows = document.querySelectorAll('table tr');
             const data = [];
 
             rows.forEach((row, index) => {
-                // Überspringe Header (erste Zeile) und Trennzeile
                 if (index === 0 || index === 1) return;
 
                 const cells = row.querySelectorAll('td');
                 if (cells.length >= 8) {
-                    // Prozentsätze bereinigen
                     const siegePct = cells[6].textContent.trim().replace('%', '');
                     const platzPct = cells[7].textContent.trim().replace('%', '');
 
@@ -63,13 +57,12 @@ async function scrapeJockeyData() {
                         platz3: parseInt(cells[5].textContent.trim()) || 0,
                         siegquote: parseFloat(siegePct) / 100 || 0,
                         platzquote: parseFloat(platzPct) / 100 || 0,
-                        // Berechnete Felder
-                        top3: (parseInt(cells[3].textContent.trim()) || 0) + 
-                              (parseInt(cells[4].textContent.trim()) || 0) + 
+                        top3: (parseInt(cells[3].textContent.trim()) || 0) +
+                              (parseInt(cells[4].textContent.trim()) || 0) +
                               (parseInt(cells[5].textContent.trim()) || 0),
-                        top3_quote: ((parseInt(cells[3].textContent.trim()) || 0) + 
-                                    (parseInt(cells[4].textContent.trim()) || 0) + 
-                                    (parseInt(cells[5].textContent.trim()) || 0)) / 
+                        top3_quote: ((parseInt(cells[3].textContent.trim()) || 0) +
+                                    (parseInt(cells[4].textContent.trim()) || 0) +
+                                    (parseInt(cells[5].textContent.trim()) || 0)) /
                                     (parseInt(cells[2].textContent.trim()) || 1)
                     });
                 }
@@ -78,10 +71,8 @@ async function scrapeJockeyData() {
             return data;
         });
 
-        console.log(`✅ ${jockeyData.length} Jockeys extrahiert
-`);
+        console.log(`✅ ${jockeyData.length} Jockeys extrahiert`);
 
-        // Statistiken
         const totalStarts = jockeyData.reduce((sum, j) => sum + j.starts, 0);
         const avgSiegquote = jockeyData.reduce((sum, j) => sum + j.siegquote, 0) / jockeyData.length;
         const topJockey = jockeyData.reduce((max, j) => j.siegquote > max.siegquote ? j : max, jockeyData[0]);
@@ -90,8 +81,7 @@ async function scrapeJockeyData() {
         console.log(`   - Jockeys: ${jockeyData.length}`);
         console.log(`   - Gesamtstarts: ${totalStarts}`);
         console.log(`   - Ø Siegquote: ${(avgSiegquote * 100).toFixed(1)}%`);
-        console.log(`   - Top Jockey (Siegquote): ${topJockey.jockey} (${(topJockey.siegquote * 100).toFixed(0)}%)
-`);
+        console.log(`   - Top Jockey (Siegquote): ${topJockey.jockey} (${(topJockey.siegquote * 100).toFixed(0)}%)`);
 
         // CSV erstellen
         const csvHeader =
@@ -102,12 +92,16 @@ async function scrapeJockeyData() {
             return `${j.platz},"${j.jockey}",${j.starts},${j.siege},${j.platz2},${j.platz3},${j.siegquote.toFixed(4)},${j.platzquote.toFixed(4)},${j.top3},${j.top3_quote.toFixed(4)},${gewichtung.toFixed(2)}`;
         }).join('\n');
 
-sed -i "s/(OUTPUT_CSV, csvHeader + csvRows, 'utf8');/fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');/" jockey_scraper.js
-node jockey_scraper.js
-        (OUTPUT_CSV, csvHeader + csvRows, 'utf8');
+        // Output-Verzeichnis anlegen falls nicht vorhanden
+        if (!fs.existsSync(OUTPUT_DIR)) {
+            fs.mkdirSync(OUTPUT_DIR);
+        }
+
+        // CSV speichern
+        fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');
         console.log(`✅ CSV gespeichert: ${OUTPUT_CSV}`);
 
-        // JSON erstellen (mit Metadaten)
+        // JSON speichern
         const output = {
             meta: {
                 source: TARGET_URL,
@@ -117,12 +111,9 @@ node jockey_scraper.js
             },
             jockeys: jockeyData
         };
-if (!fs.existsSync(OUTPUT_DIR)) {
-    fs.mkdirSync(OUTPUT_DIR);
-}
-fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');
-        console.log(`✅ JSON gespeichert: ${OUTPUT_JSON}
-`);
+
+        fs.writeFileSync(OUTPUT_JSON, JSON.stringify(output, null, 2), 'utf8');
+        console.log(`✅ JSON gespeichert: ${OUTPUT_JSON}`);
 
         return jockeyData;
 
@@ -134,9 +125,6 @@ fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');
     }
 }
 
-// Ausführung
 scrapeJockeyData()
     .then(() => console.log('🎉 Scraping abgeschlossen'))
     .catch(() => process.exit(1));
-rm Jockey.scraper.js
-curl -fsSL https://gist.githubusercontent.com/perplexity-ai/fixed-jockey-scraper/raw/jockey.scraper.js
