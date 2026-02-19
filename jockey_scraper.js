@@ -102,9 +102,7 @@ async function scrapeJockeyData() {
             return `${j.platz},"${j.jockey}",${j.starts},${j.siege},${j.platz2},${j.platz3},${j.siegquote.toFixed(4)},${j.platzquote.toFixed(4)},${j.top3},${j.top3_quote.toFixed(4)},${gewichtung.toFixed(2)}`;
         }).join('\n');
 
-       sed -i 's/fs.writeFileSync if/fs.writeFileSync(/g' Jockey.scraper.js
-sed -i 's/);$/);/' Jockey.scraper.js
-node Jockey.scraper.js
+sed -i "s/(OUTPUT_CSV, csvHeader + csvRows, 'utf8');/fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');/" Jockey.scraper.js
 }
         (OUTPUT_CSV, csvHeader + csvRows, 'utf8');
         console.log(`✅ CSV gespeichert: ${OUTPUT_CSV}`);
