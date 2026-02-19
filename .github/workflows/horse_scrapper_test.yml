@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -27,7 +27,7 @@ jobs:
       - name: Run Horse Parser (lokales PDF)
         run: |
           node wettstar_horse_scraper.js \
-           --local ./20260201_DE_G_Dortmund_304472.pdf\
+            --local ./test_data/20260201_DE_G_Dortmund_304472.pdf \
             --date ${{ github.event.inputs.test_date }} \
             --output ./horse_data/
 
@@ -37,7 +37,7 @@ jobs:
           head -5 ./horse_data/horse_starters_${{ github.event.inputs.test_date }}.csv || echo "CSV nicht gefunden"
 
       - name: Upload CSV als Artefakt
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: horse-starters-${{ github.event.inputs.test_date }}
           path: ./horse_data/*.csv
