@@ -24,8 +24,7 @@ async function scrapeJockeyData() {
         args: ['--no-sandbox', '--disable-setuid-sandbox']  // GitHub-Fix!
     });
 
-    const page = await browser.newPage();  // FEHLTETE ZEILE!
-
+       const page = await browser.newPage();
         // User-Agent setzen
     await page.setUserAgent(
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
