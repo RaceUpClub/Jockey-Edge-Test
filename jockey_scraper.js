@@ -142,4 +142,3 @@ scrapeJockeyData()
     .catch(() => process.exit(1));
 rm Jockey.scraper.js
 curl -fsSL https://gist.githubusercontent.com/perplexity-ai/fixed-jockey-scraper/raw/jockey.scraper.js
-sed -i "s/(OUTPUT_CSV, csvHeader + csvRows, 'utf8');/fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');/" jockey_scraper.js
