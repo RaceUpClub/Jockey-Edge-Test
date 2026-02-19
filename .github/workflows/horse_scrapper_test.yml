@@ -1,0 +1,44 @@
+name: Horse Scraper - PDF Test
+
+on:
+  workflow_dispatch:   # Manuell per Klick auslösbar
+    inputs:
+      test_date:
+        description: 'Datum des PDFs (YYYY-MM-DD)'
+        required: true
+        default: '2026-02-01'
+
+jobs:
+  test-horse-parser:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Horse Parser (lokales PDF)
+        run: |
+          node wettstar_horse_scraper.js \
+            --local ./test_data/20260201_DE_G_Dortmund_304472.pdf \
+            --date ${{ github.event.inputs.test_date }} \
+            --output ./horse_data/
+
+      - name: Zeige erste CSV-Zeilen
+        run: |
+          echo "=== CSV Preview (erste 5 Zeilen) ==="
+          head -5 ./horse_data/horse_starters_${{ github.event.inputs.test_date }}.csv || echo "CSV nicht gefunden"
+
+      - name: Upload CSV als Artefakt
+        uses: actions/upload-artifact@v3
+        with:
+          name: horse-starters-${{ github.event.inputs.test_date }}
+          path: ./horse_data/*.csv
+          retention-days: 7
