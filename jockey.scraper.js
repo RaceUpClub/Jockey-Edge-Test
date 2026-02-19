@@ -19,7 +19,7 @@ const OUTPUT_JSON = path.join(OUTPUT_DIR, 'jockey_stats_de.json');
 async function scrapeJockeyData() {
     console.log('🐎 Starte Jockey-Scraping...');
 
-    const browser = await puppeteer.launch({ 
+    const browser = await puppeteer.launch({ const page = await
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']  // GitHub-Fix!
     });
