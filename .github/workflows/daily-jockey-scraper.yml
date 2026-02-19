@@ -24,8 +24,8 @@ jobs:
       - name: Dependencies installieren (inkl. Puppeteer)
         run: npm install
         
-- name: Puppeteer System-Pakete installieren
-  run: |
+        - name: Puppeteer System-Pakete installieren
+          run: |
     sudo apt-get update
     sudo apt-get install -y --fix-missing \
       ca-certificates fonts-liberation libasound2t64 libatk-bridge2.0-0 \
