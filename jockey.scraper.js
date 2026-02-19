@@ -118,8 +118,10 @@ const browser = await puppeteer.launch({
             },
             jockeys: jockeyData
         };
-
-        fs.writeFileSync(OUTPUT_JSON, JSON.stringify(output, null, 2), 'utf8');
+if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR);
+}
+fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');
         console.log(`✅ JSON gespeichert: ${OUTPUT_JSON}
 `);
 
