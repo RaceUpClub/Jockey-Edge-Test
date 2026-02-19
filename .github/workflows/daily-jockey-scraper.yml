@@ -2,11 +2,11 @@ name: Daily Jockey Scraper
 
 on:
   schedule:
-    - cron: '0 6 * * *'        # Täglich 6:00 UTC ≈ 7 Uhr MEZ
+    - cron: '0 6 * * *'        # Taeglich 6:00 UTC ca. 7 Uhr MEZ
   workflow_dispatch:           # Manueller Test
 
 permissions:
-  contents: write              # Für Datei-Commits
+  contents: write              # Fuer Datei-Commits
 
 jobs:
   scrape:
@@ -17,14 +17,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Node.js einrichten
-  uses: actions/setup-node@v4
-  with:
-    node-version: '20'
-    
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Dependencies installieren (inkl. Puppeteer)
         run: npm install
 
-      # ── Puppeteer: Chromium-Dependencies für Ubuntu ──
+      # -- Puppeteer: Chromium-Dependencies fuer Ubuntu --
       - name: Puppeteer System-Pakete installieren
         run: |
           sudo apt-get update
@@ -38,13 +38,13 @@ jobs:
             libxrandr2 libxrender1 libxss1 libxtst6 lsb-release \
             wget xdg-utils
 
-      - name: Scraper ausführen
+      - name: Scraper ausfuehren
         run: node jockey_scraper.js
 
       # Ergebnisse committen (CSV + JSON)
-      - name: Änderungen committen & pushen
+      - name: Aenderungen committen und pushen
         uses: EndBug/add-and-commit@v9
         with:
           default_author: github_actions
           message: 'Daily Jockey Scrape: Update vom ${{ github.event.repository.updated_at }}'
-          add: 'data/**'  # Alle Dateien im data/-Ordner
+          add: 'jockey_stats_de.*'  # Nur die Output-Dateien
