@@ -47,4 +47,4 @@ jobs:
         with:
           default_author: github_actions
           message: 'Daily Jockey Scrape: Update vom ${{ github.event.repository.updated_at }}'
-          add: add: 'data/**'  # Alle Dateien im data/-Ordner
+          add: 'data/**'  # Alle Dateien im data/-Ordner
