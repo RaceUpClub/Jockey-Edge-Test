@@ -104,8 +104,9 @@ async function scrapeJockeyData() {
         }).join('
 ');
 
-        fs.writeFileSync if (!fs.existsSync(OUTPUT_DIR)) {
-    fs.mkdirSync(OUTPUT_DIR);
+       sed -i 's/fs.writeFileSync if/fs.writeFileSync(/g' Jockey.scraper.js
+sed -i 's/);$/);/' Jockey.scraper.js
+node Jockey.scraper.js
 }
         (OUTPUT_CSV, csvHeader + csvRows, 'utf8');
         console.log(`✅ CSV gespeichert: ${OUTPUT_CSV}`);
