@@ -94,14 +94,13 @@ async function scrapeJockeyData() {
 `);
 
         // CSV erstellen
-        const csvHeader = 'Platz,Jockey,Starts,Siege,Platz2,Platz3,Siegquote,Platzquote,Top3,Top3_Quote,Gewichtung
-';
+        const csvHeader =
+            'Platz,Jockey,Starts,Siege,Platz2,Platz3,Siegquote,Platzquote,Top3,Top3_Quote,Gewichtung\n';
+
         const csvRows = jockeyData.map(j => {
-            // Gewichtung nach Sample-Size (ungefähre Konfidenz)
             const gewichtung = Math.min(j.starts / 100, 1.0);
             return `${j.platz},"${j.jockey}",${j.starts},${j.siege},${j.platz2},${j.platz3},${j.siegquote.toFixed(4)},${j.platzquote.toFixed(4)},${j.top3},${j.top3_quote.toFixed(4)},${gewichtung.toFixed(2)}`;
-        }).join('
-');
+        }).join('\n');
 
        sed -i 's/fs.writeFileSync if/fs.writeFileSync(/g' Jockey.scraper.js
 sed -i 's/);$/);/' Jockey.scraper.js
