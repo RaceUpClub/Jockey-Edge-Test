@@ -27,7 +27,7 @@ jobs:
       - name: Run Horse Parser (lokales PDF)
         run: |
           node wettstar_horse_scraper.js \
-            --local ./test_data/20260201_DE_G_Dortmund_304472.pdf \
+           --local ./20260201_DE_G_Dortmund_304472.pdf\
             --date ${{ github.event.inputs.test_date }} \
             --output ./horse_data/
 
