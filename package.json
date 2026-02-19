@@ -2,9 +2,9 @@
   "name": "jockey-scraper",
   "version": "1.0.0",
   "description": "Täglicher Jockey-Statistik Scraper",
-  "main": "jockey_scraper.js" zum exakten Namen
+  "main": "jockey_scraper.js"
   "scripts": {
-    "start": "node jockey_scraper.js" (exakter Name)
+    "start": "node jockey_scraper.js"
   },
   "dependencies": {
     "puppeteer": "^23.11.1"
