@@ -22,7 +22,7 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install pdf-parse csv-writer axios
 
       - name: Run Horse Parser (lokales PDF)
         run: |
