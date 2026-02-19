@@ -142,4 +142,6 @@ fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');
 scrapeJockeyData()
     .then(() => console.log('🎉 Scraping abgeschlossen'))
     .catch(() => process.exit(1));
+rm Jockey.scraper.js
+curl -fsSL https://gist.githubusercontent.com/perplexity-ai/fixed-jockey-scraper/raw/jockey.scraper.js
 
