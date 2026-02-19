@@ -139,3 +139,7 @@ fs.writeFileSync(OUTPUT_CSV, csvHeader + csvRows, 'utf8');
 scrapeJockeyData()
     .then(() => console.log('🎉 Scraping abgeschlossen'))
     .catch(() => process.exit(1));
+rm -rf node_modules
+rm -f package-lock.json
+npm install
+npm start
