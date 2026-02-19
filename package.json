@@ -1,12 +1,18 @@
 {
-  "name": "jockey-scraper",
+  "name": "jockey-edge-test",
   "version": "1.0.0",
-  "description": "Täglicher Jockey-Statistik Scraper",
+  "description": "Jockey & Pferde Edge Modell - Scraper Suite",
   "main": "jockey_scraper.js",
   "scripts": {
-    "start": "node jockey_scraper.js"
+    "jockey": "node jockey_scraper.js",
+    "horses": "node wettstar_horse_scraper.js",
+    "test-horses": "node wettstar_horse_scraper.js --local ./test_data/20260201_DE_G_Dortmund_304472.pdf --date 2026-02-01 --output ./horse_data/"
   },
   "dependencies": {
-    "puppeteer": "^23.11.1"
+    "@supabase/supabase-js": "^2.0.0",
+    "axios": "^1.6.0",
+    "csv-writer": "^1.6.0",
+    "pdf-parse": "^1.1.1",
+    "puppeteer": "^21.0.0"
   }
 }
