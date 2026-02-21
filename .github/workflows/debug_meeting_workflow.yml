@@ -1,0 +1,47 @@
+name: Debug - Meeting Page Structure
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Renntag (YYYY-MM-DD)'
+        required: true
+        default: '2025-04-27'
+      meeting_id:
+        description: 'Meeting-ID (z.B. 274472 für Krefeld)'
+        required: true
+        default: '274472'
+
+jobs:
+  debug-meeting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install playwright beautifulsoup4
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Debug Meeting Page
+        run: |
+          python wettstar_debug_meeting.py \
+            --date       ${{ github.event.inputs.date }} \
+            --meeting-id ${{ github.event.inputs.meeting_id }} \
+            --output     ./debug_output/
+
+      - name: Upload HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-meeting-${{ github.event.inputs.meeting_id }}
+          path: ./debug_output/
+          retention-days: 3
