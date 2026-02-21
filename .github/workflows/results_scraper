@@ -1,0 +1,85 @@
+name: Wettstar Results Scraper
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Modus: single | range | calendar'
+        required: true
+        default: 'single'
+      race_id:
+        description: 'Race ID (Modus: single)'
+        required: false
+        default: '2492829'
+      start_id:
+        description: 'Start-ID (Modus: range)'
+        required: false
+        default: '2400000'
+      end_id:
+        description: 'End-ID (Modus: range)'
+        required: false
+        default: '2492829'
+      from_date:
+        description: 'Von Datum YYYY-MM-DD (Modus: calendar)'
+        required: false
+        default: '2024-01-01'
+
+jobs:
+  scrape-results:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6h für große Ranges
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install playwright beautifulsoup4 requests
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run Scraper (single)
+        if: github.event.inputs.mode == 'single'
+        run: |
+          python wettstar_results_scraper.py \
+            --race-id ${{ github.event.inputs.race_id }} \
+            --output ./race_results/
+
+      - name: Run Scraper (range)
+        if: github.event.inputs.mode == 'range'
+        run: |
+          python wettstar_results_scraper.py \
+            --start-id ${{ github.event.inputs.start_id }} \
+            --end-id   ${{ github.event.inputs.end_id }} \
+            --output ./race_results/
+
+      - name: Run Scraper (calendar)
+        if: github.event.inputs.mode == 'calendar'
+        run: |
+          python wettstar_results_scraper.py \
+            --from-date ${{ github.event.inputs.from_date }} \
+            --output ./race_results/
+
+      - name: CSV Preview
+        run: |
+          echo "=== Ergebnis-Dateien ==="
+          ls -lh ./race_results/*.csv 2>/dev/null || echo "Keine CSV"
+          echo ""
+          echo "=== Erste 5 Zeilen ==="
+          head -5 ./race_results/*.csv 2>/dev/null || echo "Keine Daten"
+          echo ""
+          echo "=== Zeilenanzahl ==="
+          wc -l ./race_results/*.csv 2>/dev/null || echo "0"
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: race-results-${{ github.event.inputs.mode }}-${{ github.run_number }}
+          path: ./race_results/
+          retention-days: 30
