@@ -1,0 +1,42 @@
+name: Debug - Calendar Page Structure
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Datum mit bekannten DE-Rennen (YYYY-MM-DD)'
+        required: true
+        default: '2025-04-27'
+
+jobs:
+  debug-calendar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install playwright beautifulsoup4
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Debug Calendar Page
+        run: |
+          python wettstar_debug_calendar.py \
+            --date   ${{ github.event.inputs.date }} \
+            --output ./debug_output/
+
+      - name: Upload HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-calendar-${{ github.event.inputs.date }}
+          path: ./debug_output/
+          retention-days: 3
