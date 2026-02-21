@@ -1,0 +1,46 @@
+name: Debug - Race HTML Dump
+
+on:
+  workflow_dispatch:
+    inputs:
+      race_id:
+        description: 'Race ID zum Debuggen'
+        required: true
+        default: '2492829'
+
+jobs:
+  debug-scraper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install playwright beautifulsoup4
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run Debug Scraper
+        run: |
+          python wettstar_debug.py \
+            --race-id ${{ github.event.inputs.race_id }} \
+            --output ./debug_output/
+
+      - name: Show Console Output
+        run: |
+          echo "=== STRUKTUR-LOG OBEN ==="
+
+      - name: Upload HTML Dump
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-html-race-${{ github.event.inputs.race_id }}
+          path: ./debug_output/
+          retention-days: 3
