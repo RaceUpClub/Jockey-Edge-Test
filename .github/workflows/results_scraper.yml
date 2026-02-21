@@ -3,31 +3,19 @@ name: Wettstar Results Scraper
 on:
   workflow_dispatch:
     inputs:
-      mode:
-        description: 'Modus: single | range | calendar'
-        required: true
-        default: 'single'
-      race_id:
-        description: 'Race ID (Modus: single)'
-        required: false
-        default: '2492829'
-      start_id:
-        description: 'Start-ID (Modus: range)'
-        required: false
-        default: '2400000'
-      end_id:
-        description: 'End-ID (Modus: range)'
-        required: false
-        default: '2492829'
       from_date:
-        description: 'Von Datum YYYY-MM-DD (Modus: calendar)'
-        required: false
-        default: '2024-01-01'
+        description: 'Von Datum (YYYY-MM-DD)'
+        required: true
+        default: '2025-01-01'
+      to_date:
+        description: 'Bis Datum (YYYY-MM-DD)'
+        required: true
+        default: '2025-12-31'
 
 jobs:
   scrape-results:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6h für große Ranges
+    timeout-minutes: 360
 
     steps:
       - name: Checkout Repository
@@ -40,46 +28,31 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install playwright beautifulsoup4 requests
+          pip install playwright beautifulsoup4
           playwright install chromium
           playwright install-deps chromium
 
-      - name: Run Scraper (single)
-        if: github.event.inputs.mode == 'single'
-        run: |
-          python wettstar_results_scraper.py \
-            --race-id ${{ github.event.inputs.race_id }} \
-            --output ./race_results/
-
-      - name: Run Scraper (range)
-        if: github.event.inputs.mode == 'range'
-        run: |
-          python wettstar_results_scraper.py \
-            --start-id ${{ github.event.inputs.start_id }} \
-            --end-id   ${{ github.event.inputs.end_id }} \
-            --output ./race_results/
-
-      - name: Run Scraper (calendar)
-        if: github.event.inputs.mode == 'calendar'
+      - name: Run Scraper
         run: |
           python wettstar_results_scraper.py \
             --from-date ${{ github.event.inputs.from_date }} \
-            --output ./race_results/
+            --to-date   ${{ github.event.inputs.to_date }} \
+            --output    ./race_results/
 
-      - name: CSV Preview
+      - name: Summary
         run: |
-          echo "=== Ergebnis-Dateien ==="
+          echo "=== Output-Dateien ==="
           ls -lh ./race_results/*.csv 2>/dev/null || echo "Keine CSV"
-          echo ""
-          echo "=== Erste 5 Zeilen ==="
-          head -5 ./race_results/*.csv 2>/dev/null || echo "Keine Daten"
           echo ""
           echo "=== Zeilenanzahl ==="
           wc -l ./race_results/*.csv 2>/dev/null || echo "0"
+          echo ""
+          echo "=== Erste 3 Zeilen ==="
+          head -3 ./race_results/race_results_*.csv 2>/dev/null
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: race-results-${{ github.event.inputs.mode }}-${{ github.run_number }}
+          name: race-results-${{ github.event.inputs.from_date }}-${{ github.event.inputs.to_date }}
           path: ./race_results/
-          retention-days: 30
+          retention-days: 90
