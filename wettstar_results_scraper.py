@@ -1,31 +1,25 @@
 #!/usr/bin/env python3
 """
 Wettstar Historical Results Scraper
-=====================================
-Scrapt deutsche Galopp-Ergebnisse von wettstar-pferdewetten.de
-
 Usage:
   python wettstar_results_scraper.py --race-id 2492829
   python wettstar_results_scraper.py --from-date 2024-01-01 --to-date 2024-12-31
   python wettstar_results_scraper.py --from-date 2025-01-01
-
-Dependencies:
-  pip install playwright beautifulsoup4
-  playwright install chromium && playwright install-deps chromium
 """
 
-import asyncio, re, csv, os, sys, json, argparse
+import asyncio, re, csv, sys, json, argparse
 from datetime import datetime, timedelta
 from pathlib import Path
 from bs4 import BeautifulSoup
 
-# Deutsche Galopp-Rennbahnen (Filter für nicht-DE Rennen)
+# Deutsche Venues – großzügiger Match (auch Teilstring)
 DE_VENUES = {
-    'Dortmund','Hamburg','Köln','München','Berlin','Hannover','Krefeld',
-    'Baden-Baden','Hoppegarten','Dresden','Saarbrücken','Mülheim','Magdeburg',
-    'Halle','Neuss','Mannheim','Düsseldorf','Bad Harzburg','Straubing',
-    'Regensburg','Bremen','Karlshorst','Frankfurt','Gelsenkirchen',
-    'Dusseldorf','Koeln','Muenchen'
+    'Dortmund','Hamburg','Köln','Koeln','München','Muenchen','Berlin',
+    'Hannover','Krefeld','Baden-Baden','Hoppegarten','Dresden','Saarbrücken',
+    'Saarbruecken','Mülheim','Muelheim','Magdeburg','Halle','Neuss','Mannheim',
+    'Düsseldorf','Duesseldorf','Bad Harzburg','Straubing','Regensburg','Bremen',
+    'Karlshorst','Frankfurt','Gelsenkirchen','Mulheim','Cologne','Dusseldorf',
+    'Munich','Duisburg','Cologne'
 }
 
 FIELDNAMES = [
@@ -40,6 +34,16 @@ FIELDNAMES = [
     'zweier_combo','zweier_quote','dreier_combo','dreier_quote',
 ]
 
+def is_de_venue(venue: str) -> bool:
+    """Prüft ob Venue deutsch ist – Case-insensitiv, Teilstring-Match."""
+    if not venue:
+        return False
+    v = venue.strip().lower()
+    for de in DE_VENUES:
+        if de.lower() in v or v in de.lower():
+            return True
+    return False
+
 
 # ── Parser ────────────────────────────────────────────────────────────────────
 
@@ -47,18 +51,19 @@ def parse_race_page(html: str, race_id: int) -> list[dict]:
     if 'Ergebnis' not in html:
         return []
     soup = BeautifulSoup(html, 'html.parser')
-
     meta = extract_race_meta(soup)
     meta['race_id'] = race_id
 
-    # Nur deutsche Galopp-Rennen
-    if meta.get('venue') not in DE_VENUES:
+    venue = meta.get('venue', '')
+    if not is_de_venue(venue):
+        print(f'    ⏭️  Kein DE-Venue: "{venue}" → skip')
         return []
 
     ev_data  = extract_ev_table(soup)
     pools    = extract_pools(soup)
     starters = extract_starter_rows(soup)
     if not starters:
+        print(f'    ⚠️  Keine Starter-Rows gefunden (race {race_id})')
         return []
 
     results = []
@@ -67,8 +72,7 @@ def parse_race_page(html: str, race_id: int) -> list[dict]:
         ev    = ev_data.get(horse, {})
         fp    = ev.get('finish_position', s.get('finish_position', ''))
         ev_q  = ev.get('ev_quote', '')
-
-        row = {**meta, **pools}
+        row   = {**meta, **pools}
         row.update({
             'start_nr':        s.get('start_nr',''),
             'box_nr':          s.get('box_nr',''),
@@ -101,28 +105,26 @@ def extract_race_meta(soup) -> dict:
         el = soup.find(class_=lambda c: c and cls in c if c else False)
         meta[label] = el.get_text(strip=True) if el else ''
 
-    # Datum normalisieren
     if meta.get('race_date'):
-        for fmt in ('%d.%m.%y', '%d.%m.%Y'):
+        for fmt in ('%d.%m.%y','%d.%m.%Y'):
             try:
-                meta['race_date'] = datetime.strptime(meta['race_date'], fmt).strftime('%Y-%m-%d')
+                meta['race_date'] = datetime.strptime(
+                    meta['race_date'], fmt).strftime('%Y-%m-%d')
                 break
             except ValueError:
                 pass
 
-    # Race-Nr: "R1" → 1
     rn = re.search(r'R(\d+)', meta.get('race_nr',''))
     meta['race_nr'] = int(rn.group(1)) if rn else ''
 
     text = soup.get_text(separator=' ')
-
     for pattern, key, cast in [
-        (r'(\d{3,4})\s*m',            'distance_m',      int),
-        (r'Preisgeld\D{0,10}([\d.]+)\s*€', 'prize_eur', lambda x: int(x.replace('.','')))  ,
-        (r'Starter\D{0,5}(\d+)',       'field_size',      int),
-        (r'(\d{2}:\d{2})\s*Uhr',       'start_time',      str),
-        (r'Kategorie\s+([A-Z])',        'race_class',      str),
-        (r'Alter:\s*(\d+)',             'age_restriction', str),
+        (r'(\d{3,4})\s*m',                 'distance_m',      int),
+        (r'Preisgeld\D{0,10}([\d.]+)\s*€', 'prize_eur',       lambda x: int(x.replace('.','')))  ,
+        (r'Starter\D{0,5}(\d+)',            'field_size',      int),
+        (r'(\d{2}:\d{2})\s*Uhr',           'start_time',      str),
+        (r'Kategorie\s+([A-Z])',            'race_class',      str),
+        (r'Alter:\s*(\d+)',                 'age_restriction', str),
     ]:
         m = re.search(pattern, text)
         try:
@@ -130,24 +132,21 @@ def extract_race_meta(soup) -> dict:
         except Exception:
             meta[key] = ''
 
-    meta['surface'] = 'Flach' if 'Flach' in text else ('Sand' if 'Sand' in text else '')
-
-    # Renntitel
+    meta['surface']   = 'Flach' if 'Flach' in text else ('Sand' if 'Sand' in text else '')
     name_m = re.search(r'Rennen\s+(?:des|der|vom|von)\s+(.+?)(?:\n|,|\|)', text)
     meta['race_name'] = name_m.group(1).strip() if name_m else ''
-
     return meta
 
 
 def extract_starter_rows(soup) -> list[dict]:
-    rows = soup.find_all(class_=lambda c: c and '--rg-is-starter' in c if c else False)
+    rows   = soup.find_all(class_=lambda c: c and '--rg-is-starter' in c if c else False)
     result = []
     for row in rows:
-        s = {}
+        s        = {}
         name_div = row.find(class_='race__grid__row__name')
         if not name_div: continue
-        strongs = name_div.find_all('strong')
-        spans   = name_div.find_all('span')
+        strongs  = name_div.find_all('strong')
+        spans    = name_div.find_all('span')
         s['start_nr']   = strongs[0].get_text(strip=True).rstrip('.') if strongs else ''
         s['horse_name'] = strongs[1].get_text(strip=True) if len(strongs)>1 else ''
         bm = re.search(r'\((\d+)\)', spans[0].get_text() if spans else '')
@@ -171,7 +170,6 @@ def extract_starter_rows(soup) -> list[dict]:
         s['fsieg_bm']  = _odd(row, 'fix')
         s['fplatz_bm'] = _odd(row, 'plcodd_fix')
 
-        # ML aus Quotenverlauf
         tt = row.find('table', class_='trendTrendsTable')
         s['ml_quote'] = ''
         if tt:
@@ -181,7 +179,6 @@ def extract_starter_rows(soup) -> list[dict]:
                 ml_td = trows[1].find('td', class_='ml')
                 s['ml_quote'] = pf(ml_td.get_text(strip=True)) if ml_td else ''
 
-        # Finish
         fd = row.find(class_='race__grid__row__finish')
         if fd:
             strong = fd.find('strong')
@@ -191,7 +188,6 @@ def extract_starter_rows(soup) -> list[dict]:
             s['finish_distance'] = dist.get_text(strip=True) if dist else ''
         else:
             s['finish_position'] = s['finish_distance'] = ''
-
         result.append(s)
     return result
 
@@ -206,16 +202,16 @@ def _odd(row, t):
 def extract_ev_table(soup) -> dict:
     t = next((t for t in soup.find_all('table') if 'Ev.-Quote' in t.get_text()), None)
     if not t: return {}
-    result = {}
+    out = {}
     for row in t.find_all('tr')[1:]:
         cols = [c.get_text(strip=True) for c in row.find_all(['td','th'])]
         if len(cols) >= 4:
-            result[cols[2]] = {
+            out[cols[2]] = {
                 'finish_position': int(cols[0]) if cols[0].isdigit() else cols[0],
                 'ev_quote':        pf(cols[3]),
                 'finish_distance': cols[5] if len(cols)>5 else '',
             }
-    return result
+    return out
 
 
 def extract_pools(soup) -> dict:
@@ -246,26 +242,27 @@ async def fetch(page, url: str) -> str:
         await asyncio.sleep(0.5)
         return await page.content()
     except Exception as e:
-        print(f'  ⚠️  {url}: {e}')
+        print(f'  ⚠️  fetch error {url}: {e}')
         return ''
 
 
 async def get_race_ids_for_date(page, date_str: str) -> list[int]:
-    html = await fetch(page, f'https://wettstar-pferdewetten.de/races/{date_str}')
-    if not html: return []
-    soup = BeautifulSoup(html, 'html.parser')
-    ids  = []
-    for a in soup.find_all('a', href=re.compile(r'/race/\d+')):
-        m = re.search(r'/race/(\d+)', a.get('href',''))
-        if m:
-            # Nur deutsche Rennen: Prüfe ob Venue im Kontext steht
-            parent_text = ''
-            for p in [a.parent, a.parent.parent if a.parent else None]:
-                if p: parent_text += p.get_text()
-            # Wenn "DE" im Link-Kontext oder keine AT/CH Kennzeichnung
-            if not any(x in parent_text for x in ['AUT','SUI','CHE','FRA','ENG','IRE','HUN']):
-                ids.append(int(m.group(1)))
-    return list(set(ids))
+    """Holt alle Race-IDs für einen Tag vom Kalender."""
+    url  = f'https://wettstar-pferdewetten.de/races/{date_str}'
+    html = await fetch(page, url)
+    if not html:
+        return []
+
+    ids = re.findall(r'/race/(\d{5,8})', html)
+    unique = sorted(set(int(i) for i in ids))
+
+    # Debug: zeige was auf der Kalenderseite steht
+    if unique:
+        soup   = BeautifulSoup(html, 'html.parser')
+        venues = re.findall(r'-breadcrumb-name[^>]*>([^<]+)<', html)
+        print(f'    Kalender {date_str}: {len(unique)} IDs '
+              f'({unique[0]}..{unique[-1]}) | Venues: {venues[:5]}')
+    return unique
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -295,29 +292,26 @@ async def run(args):
             race_ids = [args.race_id]
 
         elif args.from_date:
-            to_date  = args.to_date or datetime.today().strftime('%Y-%m-%d')
-            print(f'📅 Kalender scannen: {args.from_date} → {to_date}')
-            race_ids = []
-            current  = datetime.strptime(args.from_date, '%Y-%m-%d')
-            end      = datetime.strptime(to_date, '%Y-%m-%d')
+            to_date = args.to_date or datetime.today().strftime('%Y-%m-%d')
+            print(f'📅 Kalender: {args.from_date} → {to_date}')
+            race_ids  = []
+            current   = datetime.strptime(args.from_date, '%Y-%m-%d')
+            end       = datetime.strptime(to_date, '%Y-%m-%d')
             total_days = (end - current).days + 1
-            day_count  = 0
+            scanned    = 0
 
             while current <= end:
                 ds  = current.strftime('%Y-%m-%d')
                 ids = await get_race_ids_for_date(page, ds)
-                if ids:
-                    print(f'  {ds}: {len(ids)} Rennen gefunden')
-                    race_ids.extend(ids)
-                day_count += 1
-                if day_count % 30 == 0:
-                    print(f'  ... {day_count}/{total_days} Tage gescannt, {len(race_ids)} IDs bisher')
+                race_ids.extend(ids)
+                scanned += 1
+                if scanned % 30 == 0:
+                    print(f'  ... {scanned}/{total_days} Tage | {len(race_ids)} IDs total')
                 current += timedelta(days=1)
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.2)
 
             race_ids = sorted(set(race_ids))
-            print(f'✅ {len(race_ids)} Race-IDs gefunden\n')
-
+            print(f'✅ {len(race_ids)} Race-IDs aus Kalender\n')
         else:
             print('❌ Nutze --race-id oder --from-date')
             sys.exit(1)
@@ -326,34 +320,54 @@ async def run(args):
         todo        = [rid for rid in race_ids if rid not in done_ids]
         all_results = []
         new_done    = []
-        skipped_de  = 0
+        stats       = {'de': 0, 'non_de': 0, 'no_result': 0, 'no_starters': 0}
 
-        print(f'🏇 Scraping {len(todo)} Rennen ({len(done_ids)} bereits bekannt)...\n')
+        print(f'🏇 Scraping {len(todo)} Rennen ({len(done_ids)} übersprungen)...\n')
 
         for i, race_id in enumerate(todo, 1):
             try:
                 html = await fetch(page, f'https://wettstar-pferdewetten.de/race/{race_id}')
-                rows = parse_race_page(html, race_id) if html else []
+
+                if not html:
+                    new_done.append(race_id)
+                    continue
+
+                if 'Ergebnis' not in html:
+                    stats['no_result'] += 1
+                    new_done.append(race_id)
+                    await asyncio.sleep(0.5)
+                    continue
+
+                rows = parse_race_page(html, race_id)
 
                 if rows:
                     all_results.extend(rows)
+                    stats['de'] += 1
                     r0 = rows[0]
                     print(f'  [{i:>4}/{len(todo)}] ✅ {race_id} | '
-                          f'{r0.get("race_date","")} {r0.get("venue","")} '
-                          f'R{r0.get("race_nr","")} | {len(rows)} Starter')
-                elif html and 'Ergebnis' in html:
-                    skipped_de += 1
-                    # Kein DE-Rennen – still checkpoint
+                          f'{r0["race_date"]} {r0["venue"]} '
+                          f'R{r0["race_nr"]} | {len(rows)} Starter')
                 else:
-                    pass  # Kein Ergebnis vorhanden
+                    # Entweder non-DE oder keine Starter
+                    soup  = BeautifulSoup(html, 'html.parser')
+                    el    = soup.find(class_=lambda c: c and '-breadcrumb-name' in c if c else False)
+                    venue = el.get_text(strip=True) if el else '?'
+                    if is_de_venue(venue):
+                        stats['no_starters'] += 1
+                        print(f'  [{i:>4}/{len(todo)}] ⚠️  {race_id} | {venue} – DE aber keine Starter')
+                    else:
+                        stats['non_de'] += 1
 
                 new_done.append(race_id)
 
-                # Checkpoint + CSV alle 200 Rennen
+                # Checkpoint alle 200 Rennen
                 if i % 200 == 0:
                     _save_cp(cp_file, done_ids | set(new_done))
-                    _write_csv(all_results, out_dir, f'{args.from_date or args.race_id}_partial')
-                    print(f'\n  💾 Checkpoint: {i}/{len(todo)} | {len(all_results)} Starter gespeichert\n')
+                    tag = args.from_date or str(args.race_id)
+                    _write_csv(all_results, out_dir, f'{tag}_partial')
+                    print(f'\n  💾 Checkpoint: {i}/{len(todo)} | '
+                          f'DE:{stats["de"]} nonDE:{stats["non_de"]} '
+                          f'noResult:{stats["no_result"]}\n')
 
                 await asyncio.sleep(0.8)
 
@@ -369,14 +383,21 @@ async def run(args):
     # ── Output ────────────────────────────────────────────────────────────────
     _save_cp(cp_file, done_ids | set(new_done))
 
+    print(f'\n📊 Stats: DE={stats["de"]} | nonDE={stats["non_de"]} | '
+          f'noResult={stats["no_result"]} | noStarters={stats["no_starters"]}')
+
     if all_results:
-        tag      = args.from_date or str(args.race_id)
-        if args.to_date: tag += f'_to_{args.to_date}'
+        tag = args.from_date or str(args.race_id)
+        if hasattr(args, 'to_date') and args.to_date:
+            tag += f'_to_{args.to_date}'
         csv_path = _write_csv(all_results, out_dir, tag)
-        print(f'\n📊 CSV: {len(all_results)} Starter → {csv_path}')
-        _summary(all_results, skipped_de)
+        print(f'✅ CSV: {len(all_results)} Starter → {csv_path}')
+        _summary(all_results)
     else:
-        print('\n⚠️  Keine deutschen Galopp-Ergebnisse gefunden.')
+        print('⚠️  Keine deutschen Galopp-Ergebnisse – CSV nicht erstellt.')
+        print('    Tipp: Prüfe die Logs oben nach "Kein DE-Venue" Meldungen.')
+        # Exit 0 damit der Workflow-Summary-Step nicht mit exit 1 versagt
+        sys.exit(0)
 
 
 def _write_csv(results, out_dir, tag):
@@ -393,31 +414,30 @@ def _save_cp(path, ids):
         json.dump(sorted(ids), f)
 
 
-def _summary(results, skipped):
+def _summary(results):
     from collections import Counter
     venues  = Counter(r.get('venue','') for r in results)
     races   = len(set((r['race_id'], r['race_nr']) for r in results))
     ev_ok   = sum(1 for r in results if r.get('ev_quote'))
     fin_ok  = sum(1 for r in results if r.get('finish_position'))
-    winners = sum(1 for r in results if r.get('won')==1)
+    winners = sum(1 for r in results if r.get('won') == 1)
     print(f'\n📈 Summary:')
-    print(f'  Rennen:            {races}')
+    print(f'  Rennen gesamt:     {races}')
     print(f'  Starter gesamt:    {len(results)}')
-    print(f'  Nicht-DE gefiltert:{skipped}')
-    print(f'  Winners:           {winners} ({100*winners//len(results)}% Siegrate)')
-    print(f'  Ev-Quote gefüllt:  {ev_ok}/{len(results)} ({100*ev_ok//len(results)}%)')
-    print(f'  Finish gefüllt:    {fin_ok}/{len(results)} ({100*fin_ok//len(results)}%)')
+    print(f'  Winners:           {winners} ({100*winners//len(results) if results else 0}%)')
+    print(f'  EV-Quote gefüllt:  {ev_ok}/{len(results)}')
+    print(f'  Finish gefüllt:    {fin_ok}/{len(results)}')
     print(f'\n  Top Venues:')
-    for v, n in venues.most_common(8):
-        print(f'    {v:<20}: {n} Starter')
+    for v, n in venues.most_common(10):
+        print(f'    {v:<22}: {n:>5} Starter')
 
 
 def main():
     p = argparse.ArgumentParser()
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('--race-id',   type=int)
-    g.add_argument('--from-date', type=str, help='YYYY-MM-DD')
-    p.add_argument('--to-date',   type=str, default=None, help='YYYY-MM-DD (optional)')
+    g.add_argument('--from-date', type=str)
+    p.add_argument('--to-date',   type=str, default=None)
     p.add_argument('--output',    type=str, default='./race_results/')
     args = p.parse_args()
     asyncio.run(run(args))
