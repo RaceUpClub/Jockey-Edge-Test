@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Debug: Kalenderseiten-Struktur analysieren
-Usage: python wettstar_debug_calendar.py
+Debug: Kalenderseiten-Struktur analysieren (2024 vs 2025)
+Usage: python wettstar_debug_calendar.py --date 2024-06-15
 """
-import asyncio, re, json, argparse
+import asyncio, re, argparse
 from bs4 import BeautifulSoup
 from pathlib import Path
 
@@ -22,52 +22,53 @@ async def debug_calendar(date_str: str, output_dir: str = './debug_output/'):
 
         print(f'Lade {url} ...')
         await page.goto(url, wait_until='networkidle', timeout=30000)
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
         html = await page.content()
 
-        # HTML speichern
         out = f'{output_dir}/calendar_{date_str}.html'
         with open(out, 'w', encoding='utf-8') as f:
             f.write(html)
-        print(f'✅ HTML gespeichert: {out} ({len(html)} chars)')
+        print(f'HTML: {len(html)} chars → {out}')
 
         soup = BeautifulSoup(html, 'html.parser')
 
-        # Alle /race/ Links
-        print('\n=== ALLE /race/ LINKS ===')
-        all_race_links = []
-        for a in soup.find_all('a', href=re.compile(r'/race/\d+')):
-            href = a.get('href', '')
-            text = a.get_text(strip=True)[:60]
-            parent_text = a.parent.get_text(strip=True)[:80] if a.parent else ''
-            all_race_links.append((href, text, parent_text))
-            print(f'  href={href:<30} text="{text}" parent="{parent_text}"')
+        # Deutschland-Meetings
+        print('\n=== DEUTSCHLAND-MEETINGS ===')
+        for cb in soup.find_all(class_='ttml__country'):
+            name_el = cb.find(class_='ttml__country__name')
+            if not name_el or 'Deutschland' not in name_el.get_text():
+                continue
+            meetings = cb.find_all(class_=re.compile(r'meeting-id--\d+'))
+            print(f'  DE-Meetings gefunden: {len(meetings)}')
+            for m in meetings:
+                cls_str = str(m)
+                ven_el  = m.find(class_='ttml__meeting__title--subject')
+                venue   = ven_el.get_text(strip=True) if ven_el else '?'
+                mid     = re.search(r'meeting-id--(\d+)', ' '.join(m.get('class',[])))
+                # Alle Icon-Klassen zeigen
+                icons   = re.findall(r'icon--r-\w+|icon__\w+|fixcourse|pmu', cls_str)
+                print(f'    ID={mid.group(1) if mid else "?":<8} Venue="{venue}"')
+                print(f'    Icons: {icons}')
+                print(f'    "fixcourse" im HTML: {"JA" if "fixcourse" in cls_str else "NEIN"}')
+                print(f'    "icon--r-gallop": {"JA" if "icon--r-gallop" in cls_str else "NEIN"}')
+                print(f'    "icon--r-trot":   {"JA" if "icon--r-trot" in cls_str else "NEIN"}')
+                print()
 
-        print(f'\nTotal /race/ Links: {len(all_race_links)}')
-        ids = list(set(re.findall(r'/race/(\d+)', html)))
-        print(f'Unique Race-IDs: {len(ids)} → {sorted(ids)[:20]}')
-
-        # CSS-Klassen auf der Kalenderseite
-        print('\n=== KALENDER-SPEZIFISCHE KLASSEN ===')
-        all_cls = set(
-            c for tag in soup.find_all(True)
-            for c in tag.get('class', [])
-            if any(k in c.lower() for k in ['race','meet','event','card','day','list','item','calendar'])
-        )
-        for c in sorted(all_cls)[:30]:
-            print(f'  .{c}')
-
-        # Seitentext (erste 1500 Zeichen)
-        print('\n=== SEITEN-TEXT (erste 1500 Zeichen) ===')
-        print(soup.get_text(separator=' ', strip=True)[:1500])
+        # Alle ttml__meeting__icon Klassen auf der ganzen Seite
+        print('\n=== ALLE ttml__meeting__icon KLASSEN (unique) ===')
+        icon_classes = set()
+        for el in soup.find_all(class_=re.compile(r'ttml__meeting__icon')):
+            for c in el.get('class', []):
+                icon_classes.add(c)
+        for c in sorted(icon_classes):
+            print(f'  {c}')
 
         await browser.close()
-        print(f'\n📁 Debug gespeichert: {output_dir}')
 
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--date',   default='2025-04-27', help='Datum mit bekannten Rennen (YYYY-MM-DD)')
+    p.add_argument('--date',   default='2024-06-15')
     p.add_argument('--output', default='./debug_output/')
     args = p.parse_args()
     asyncio.run(debug_calendar(args.date, args.output))
