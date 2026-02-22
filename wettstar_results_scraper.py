@@ -56,11 +56,13 @@ def get_de_meetings_from_calendar(soup) -> list[dict]:
             venue   = ven_el.get_text(strip=True) if ven_el else ''
             n_races = re.search(r'\((\d+)\)', venue)
 
-            # Nur Flachrennen (race-type-T = Trab ausschließen)
-            # race-type-H = Hürde/Steeplechase, lassen wir drin
-            # race-type-T = Trabrennen → überspringen
-            if 'race-type-T' in cls_str:
+            # Nur Galopp: icon--r-gallop vorhanden?
+            # icon--r-trot = Trabrennen → überspringen
+            meeting_html = str(m)
+            if 'icon--r-trot' in meeting_html:
                 continue
+            if 'icon--r-gallop' not in meeting_html:
+                continue  # unbekannter Typ → skip
 
             if mid:
                 result.append({
