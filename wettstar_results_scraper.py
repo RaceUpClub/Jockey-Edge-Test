@@ -56,13 +56,13 @@ def get_de_meetings_from_calendar(soup) -> list[dict]:
             venue   = ven_el.get_text(strip=True) if ven_el else ''
             n_races = re.search(r'\((\d+)\)', venue)
 
-            # Nur Galopp: icon--r-gallop vorhanden?
-            # icon--r-trot = Trabrennen → überspringen
+            # Nur deutsches Galopp-Hauptmeeting (FK/fixcourse Badge)
+            # Filtert:
+            #   icon--r-trot    → Trabrennen
+            #   pmu-int         → PMU-Duplikate (gleiche Rennen für fr. Markt)
             meeting_html = str(m)
-            if 'icon--r-trot' in meeting_html:
+            if 'fixcourse' not in meeting_html:
                 continue
-            if 'icon--r-gallop' not in meeting_html:
-                continue  # unbekannter Typ → skip
 
             if mid:
                 result.append({
