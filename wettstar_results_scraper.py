@@ -56,12 +56,14 @@ def get_de_meetings_from_calendar(soup) -> list[dict]:
             venue   = ven_el.get_text(strip=True) if ven_el else ''
             n_races = re.search(r'\((\d+)\)', venue)
 
-            # Nur deutsches Galopp-Hauptmeeting (FK/fixcourse Badge)
-            # Filtert:
-            #   icon--r-trot    → Trabrennen
-            #   pmu-int         → PMU-Duplikate (gleiche Rennen für fr. Markt)
+            # Nur Galopp-Hauptmeeting – funktioniert für 2024 + 2025:
+            #   icon--r-gallop = Galopp  (beide Jahre)
+            #   icon--r-trot   = Trab    → skip
+            #   pmu-int        = PMU-Duplikat (2025) → skip (gleiche Rennen)
             meeting_html = str(m)
-            if 'fixcourse' not in meeting_html:
+            if 'icon--r-gallop' not in meeting_html:
+                continue
+            if 'pmu-int' in meeting_html:
                 continue
 
             if mid:
