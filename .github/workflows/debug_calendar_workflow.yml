@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Datum mit bekannten DE-Rennen (YYYY-MM-DD)'
+        description: 'Datum (YYYY-MM-DD) - nutze einen bekannten 2024 Renntag'
         required: true
-        default: '2025-04-27'
+        default: '2024-06-15'
 
 jobs:
   debug-calendar:
@@ -28,7 +28,7 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
-      - name: Debug Calendar Page
+      - name: Debug Calendar
         run: |
           python wettstar_debug_calendar.py \
             --date   ${{ github.event.inputs.date }} \
